@@ -103,7 +103,7 @@ const form=$("bidForm");
 const msgEl=$("msg");
 const bidInput=$("bid");
 
-let currentAuction="";
+let currentAuction = select.value;
 let highest=0,minInc=5;
 
 AUCTIONS.filter(a=>a.enabled).forEach(a=>{
@@ -128,8 +128,10 @@ function jsonp(url){
 }
 
 async function refresh(){
- try{
-  const data=await jsonp(API_URL+"?auction="+encodeURIComponent(currentAuction));
+  try{
+    const data = await jsonp(
+      API_URL + "?auction=" + encodeURIComponent(currentAuction)
+    );
   if(!data.ok)throw new Error();
   highest=Number(data.highestBid)||0;
   minInc=Number(data.minIncrement)||5;
@@ -161,11 +163,12 @@ form.addEventListener("submit",e=>{
  },1000);
 });
 
-select.addEventListener("change",async()=>{
- currentAuction=select.value;
- $("auctionInput").value=currentAuction;
- await refresh();
+select.addEventListener("change", async ()=>{
+  currentAuction = select.value;
+  $("auctionInput").value = currentAuction;
+  await refresh();
 });
+
 
 refresh();
 setInterval(refresh,15000);
@@ -174,5 +177,6 @@ setInterval(refresh,15000);
 </script>
 </body>
 </html>
+
 
 
