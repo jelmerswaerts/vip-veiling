@@ -1,247 +1,176 @@
 <!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Veiling VIP stoelen</title>
-  <style>
-    :root{
-      --red:#b30000;
-      --bg1:#0b0b0b;
-      --bg2:#161616;
-      --line:rgba(140,0,0,0.45);
-      --muted:#9a9a9a;
-      --ok:#00c36a;
-      --err:#ff4d4d;
-    }
-    body{margin:0;font-family:system-ui,Arial;color:#e8e8e8;background:transparent;}
-    .wrap{max-width:720px;margin:0 auto;padding:12px}
-    h2{color:var(--red);margin:0 0 12px 0;}
-    h3,h4{color:var(--red);margin:0 0 10px 0;}
-    .card{
-      background:linear-gradient(145deg,var(--bg1),var(--bg2));
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:18px;
-      margin:14px 0;
-      box-shadow:0 0 20px rgba(0,0,0,0.8),0 0 6px rgba(120,0,0,0.25);
-    }
-    .big{font-size:1.6rem;font-weight:700;color:var(--red);letter-spacing:.5px;}
-    .muted{color:var(--muted);}
-    .row{display:flex;gap:12px;flex-wrap:wrap;}
-    .col{flex:1;min-width:220px;}
-    label{display:block;margin:10px 0 6px;}
-    input{
-      width:100%;
-      padding:10px;
-      border-radius:8px;
-      border:1px solid #333;
-      background:#121212;
-      color:#fff;
-      box-sizing:border-box;
-    }
-    input:focus{outline:none;border-color:#990000;box-shadow:0 0 6px rgba(120,0,0,0.4);}
-    button{
-      margin-top:16px;
-      padding:12px 18px;
-      border-radius:8px;
-      border:none;
-      cursor:pointer;
-      background:linear-gradient(145deg,#7a0000,var(--red));
-      color:#fff;
-      font-weight:600;
-    }
-    .msg{margin-top:10px}
-    .msg.ok{color:var(--ok)}
-    .msg.err{color:var(--err)}
-    .top10item{padding:6px 0;border-bottom:1px dashed rgba(120,0,0,0.2)}
-    @media (max-width:600px){.row{flex-direction:column}.col{min-width:100%}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIP Veiling</title>
+<style>
+:root{
+ --red:#b30000;--bg1:#0b0b0b;--bg2:#161616;--line:rgba(140,0,0,.45);
+ --muted:#9a9a9a;--ok:#00c36a;--err:#ff4d4d;
+}
+body{margin:0;font-family:system-ui,Arial;color:#e8e8e8}
+.wrap{max-width:720px;margin:0 auto;padding:12px}
+.card{background:linear-gradient(145deg,var(--bg1),var(--bg2));
+ border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0;}
+.big{font-size:1.6rem;font-weight:700;color:var(--red)}
+.muted{color:var(--muted)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.col{flex:1;min-width:220px}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#121212;color:#fff}
+button{margin-top:16px;padding:12px 18px;border-radius:8px;border:none;cursor:pointer;
+ background:linear-gradient(145deg,#7a0000,var(--red));color:#fff;font-weight:600}
+.msg{margin-top:10px}
+.msg.ok{color:var(--ok)}
+.msg.err{color:var(--err)}
+.top10item{padding:6px 0;border-bottom:1px dashed rgba(120,0,0,.2)}
+</style>
 </head>
 <body>
-  <div class="wrap">
-   
+<div class="wrap">
 
-    <div class="card">
-      <div class="big">Huidig hoogste bod: <span id="highestBid">…</span></div>
-      <div class="muted" style="margin-top:6px">
-        Minimale verhoging: €<span id="minInc">…</span> • Minimaal bod: <span id="requiredMin">…</span>
-      </div>
-      <div class="muted" style="margin-top:6px" id="lastUpdated"></div>
-    </div>
+<div class="card">
+<label>Kies speelavond:</label>
+<select id="auctionSelect"></select>
+</div>
 
-    <div class="card">
-      <h3>Plaats je bod</h3>
+<div class="card">
+<div class="big">Huidig hoogste bod: <span id="highestBid">…</span></div>
+<div class="muted" style="margin-top:6px">
+Minimale verhoging: €<span id="minInc">…</span>
+</div>
+<div class="muted" id="lastUpdated"></div>
+</div>
 
-      <!-- Visible form (post naar hidden iframe) -->
-      <form id="bidForm" method="POST">
-        <div class="row">
-          <div class="col">
-            <label>Voornaam</label>
-            <input id="firstName" name="firstName" required autocomplete="given-name">
-          </div>
-          <div class="col">
-            <label>Achternaam</label>
-            <input id="lastName" name="lastName" required autocomplete="family-name">
-          </div>
-        </div>
+<div class="card">
+<h3>Plaats je bod</h3>
+<form id="bidForm" method="POST">
+<input type="hidden" name="auction" id="auctionInput">
 
-        <div class="row">
-          <div class="col">
-            <label>E-mail</label>
-            <input id="email" name="email" type="email" required autocomplete="email">
-          </div>
-          <div class="col">
-            <label>Telefoon</label>
-            <input id="phone" name="phone" required autocomplete="tel">
-          </div>
-        </div>
+<div class="row">
+<div class="col"><label>Voornaam</label><input name="firstName" required></div>
+<div class="col"><label>Achternaam</label><input name="lastName" required></div>
+</div>
 
-        <label>Bod (euro)</label>
-        <input id="bid" name="bid" type="number" min="1" step="1" required>
+<div class="row">
+<div class="col"><label>E-mail</label><input name="email" type="email" required></div>
+<div class="col"><label>Telefoon</label><input name="phone" required></div>
+</div>
 
-        <div class="muted" style="margin-top:10px">
-          Door te bieden ga je akkoord: bieden is bindend en betaling volgt na afloop.
-        </div>
+<label>Bod (euro)</label>
+<input id="bid" name="bid" type="number" min="1" step="1" required>
 
-        <button type="submit">Bod plaatsen</button>
-        <div id="msg" class="msg"></div>
-      </form>
+<button type="submit">Bod plaatsen</button>
+<div id="msg" class="msg"></div>
+</form>
 
-      <div style="margin-top:16px;border-top:1px solid rgba(120,0,0,0.2);padding-top:12px">
-        <h4>Top 10 biedingen</h4>
-        <div id="top10" class="muted">Laden…</div>
-      </div>
-    </div>
-  </div>
+<div style="margin-top:16px">
+<h4>Top 10 biedingen</h4>
+<div id="top10" class="muted">Laden…</div>
+</div>
+</div>
 
-  <!-- Hidden iframe target for POST -->
-  <iframe name="postTarget" style="display:none;width:0;height:0;border:0"></iframe>
+</div>
+
+<iframe name="postTarget" style="display:none"></iframe>
 
 <script>
 (() => {
-  // 🔥 Zet hier jouw NIEUWE Apps Script /exec URL (na JSONP-aanpassing + nieuwe implementatie)
-  const API_URL = "https://script.google.com/macros/s/AKfycbzjR24XCfuIb3vM1d4E0TIh7Tw2rdVh7i92YgZgi9XQe3lTkyM0QSAEvlIIjXry8AhT/exec";
 
-  const $ = (id) => document.getElementById(id);
-  const euro = (n) => "€" + (Number(n) || 0).toLocaleString("nl-NL");
-  const esc = (s) => String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
+const API_URL = "https://script.google.com/macros/s/AKfycbwisvVEAM_R24pvlVQzdCQMjQPDOgcDt9wk4wxG_3qmoxJOMeOGIQdD-P4zIAP0hle-dQ/exec";
 
-  const highestBidEl = $("highestBid");
-  const minIncEl = $("minInc");
-  const requiredMinEl = $("requiredMin");
-  const lastUpdatedEl = $("lastUpdated");
-  const msgEl = $("msg");
-  const bidInput = $("bid");
-  const form = $("bidForm");
-  const top10El = $("top10");
+const AUCTIONS = [
+ {id:"2027-01-29", label:"Vrijdag 29-01-2027", enabled:true},
+ {id:"2027-01-30", label:"Zaterdag 30-01-2027", enabled:true},
+ {id:"2027-01-31", label:"Zondag 31-01-2027", enabled:true},
+ {id:"2027-02-05", label:"Vrijdag 05-02-2027", enabled:true},
+ {id:"2027-02-06", label:"Zaterdag 06-02-2027", enabled:true}
+];
 
-  let highest = 0;
-  let minInc = 5;
-  let submitting = false;
+// 👉 Wil je later een avond uitschakelen?
+// Zet enabled:false of verwijder de regel hierboven.
 
-  function setMsg(text, kind){
-    msgEl.textContent = text || "";
-    msgEl.className = "msg " + (kind || "");
-  }
+const $ = id=>document.getElementById(id);
+const euro=n=>"€"+(Number(n)||0).toLocaleString("nl-NL");
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 
-  // JSONP helper (no CORS)
-  function jsonp(url) {
-    return new Promise((resolve, reject) => {
-      const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
-      window[cb] = (data) => {
-        try { delete window[cb]; } catch {}
-        script.remove();
-        resolve(data);
-      };
-      const script = document.createElement("script");
-      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
-      script.onerror = () => {
-        try { delete window[cb]; } catch {}
-        script.remove();
-        reject(new Error("JSONP laden mislukt"));
-      };
-      document.head.appendChild(script);
-    });
-  }
+const select=$("auctionSelect");
+const highestBidEl=$("highestBid");
+const minIncEl=$("minInc");
+const lastUpdatedEl=$("lastUpdated");
+const top10El=$("top10");
+const form=$("bidForm");
+const msgEl=$("msg");
+const bidInput=$("bid");
 
-  async function refresh(){
-    try{
-      const data = await jsonp(API_URL);
-      if(!data || !data.ok) throw new Error("Kon data niet laden.");
+let currentAuction="";
+let highest=0,minInc=5;
 
-      highest = Number(data.highestBid) || 0;
-      minInc  = Number(data.minIncrement) || 5;
+AUCTIONS.filter(a=>a.enabled).forEach(a=>{
+ const opt=document.createElement("option");
+ opt.value=a.id; opt.textContent=a.label;
+ select.appendChild(opt);
+});
+currentAuction=select.value;
+$("auctionInput").value=currentAuction;
 
-      highestBidEl.textContent = euro(highest);
-      minIncEl.textContent = minInc;
-      requiredMinEl.textContent = euro(highest + minInc);
-      bidInput.min = String(highest + minInc);
+function setMsg(t,k){msgEl.textContent=t||"";msgEl.className="msg "+(k||"");}
 
-      lastUpdatedEl.textContent = "Laatst bijgewerkt: " + new Date().toLocaleString("nl-NL");
+function jsonp(url){
+ return new Promise((res,rej)=>{
+  const cb="cb_"+Date.now();
+  window[cb]=data=>{delete window[cb];script.remove();res(data);}
+  const script=document.createElement("script");
+  script.src=url+(url.includes("?")?"&":"?")+"callback="+cb;
+  script.onerror=()=>{delete window[cb];script.remove();rej();}
+  document.head.appendChild(script);
+ });
+}
 
-      if(Array.isArray(data.top10) && data.top10.length){
-        top10El.innerHTML = data.top10.map(it =>
-          `<div class="top10item">${esc(it.date||"")} - ${esc(it.name||"—")} - ${euro(it.bid)}</div>`
-        ).join("");
-      } else {
-        top10El.innerHTML = "<div>Nog geen biedingen.</div>";
-      }
-    } catch(e){
-      setMsg("Fout bij laden: " + e.message, "err");
-      top10El.textContent = "Kon top 10 niet laden.";
-    }
-  }
+async function refresh(){
+ try{
+  const data=await jsonp(API_URL+"?auction="+encodeURIComponent(currentAuction));
+  if(!data.ok)throw new Error();
+  highest=Number(data.highestBid)||0;
+  minInc=Number(data.minIncrement)||5;
+  highestBidEl.textContent=euro(highest);
+  minIncEl.textContent=minInc;
+  bidInput.min=String(highest+minInc);
+  lastUpdatedEl.textContent="Laatst bijgewerkt: "+new Date().toLocaleString("nl-NL");
+  if(Array.isArray(data.top10)&&data.top10.length){
+   top10El.innerHTML=data.top10.map(it=>
+    `<div class="top10item">${esc(it.date)} - ${esc(it.name)} - ${euro(it.bid)}</div>`
+   ).join("");
+  }else top10El.innerHTML="Nog geen biedingen.";
+ }catch{setMsg("Fout bij laden","err")}
+}
 
-  // Setup form to POST to hidden iframe (no CORS issues)
-  form.action = API_URL;
-  form.target = "postTarget";
+form.action=API_URL;
+form.target="postTarget";
 
-  form.addEventListener("submit", async (e) => {
-    // We willen eerst client-side checken, daarna normaal posten naar iframe
-    if (submitting) return; // voorkomt double submit
-    e.preventDefault();
+form.addEventListener("submit",e=>{
+ e.preventDefault();
+ const bid=Number(bidInput.value);
+ if(bid<highest+minInc){setMsg("Te laag bod","err");return;}
+ setMsg("Bod wordt verzonden…","");
+ form.submit();
+ setTimeout(async()=>{
+  await refresh();
+  setMsg("✅ Bod geplaatst!","ok");
+  form.reset();
+ },1000);
+});
 
-    const bid = Number(bidInput.value);
-    const required = highest + minInc;
+select.addEventListener("change",async()=>{
+ currentAuction=select.value;
+ $("auctionInput").value=currentAuction;
+ await refresh();
+});
 
-    if(!Number.isFinite(bid) || bid < required){
-      setMsg("Te laag bod. Minimaal: " + euro(required), "err");
-      return;
-    }
+refresh();
+setInterval(refresh,15000);
 
-    // Verstuur (form POST naar hidden iframe)
-    submitting = true;
-    setMsg("Bod wordt verzonden…", "");
-
-    try{
-      // Nu de echte submit (zonder recursion)
-      setTimeout(() => {
-        try {
-          form.submit();
-        } finally {
-          // Na kort moment refreshen (server schrijft naar sheet)
-          setTimeout(async () => {
-            await refresh();
-            setMsg("✅ Bod geplaatst! Dankjewel.", "ok");
-            form.reset();
-            submitting = false;
-          }, 900);
-        }
-      }, 50);
-
-    } catch(err){
-      setMsg("Fout bij versturen.", "err");
-      submitting = false;
-    }
-  });
-
-  refresh();
-  setInterval(refresh, 15000);
 })();
 </script>
 </body>
 </html>
-
