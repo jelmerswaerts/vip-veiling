@@ -77,7 +77,7 @@ Minimale verhoging: €<span id="minInc">…</span>
 <script>
 (() => {
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyOAZn9_ODXujr8HgXlc44gyuPMypimS9R1R6CihXot1u8iY4jdQLdSiA4HGK5utRHsyA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzGYFA7eDCkiwRLHwrBYXECtAHiEmUsezZpkSbD2pY1SLPqMHl3QAMCFZPvdmnHBJerZQ/exec";
 
 const AUCTIONS = [
  {id:"2027-01-29", label:"Vrijdag 29-01-2027", enabled:true},
@@ -135,9 +135,15 @@ async function refresh(){
   if(!data.ok)throw new Error();
   highest=Number(data.highestBid)||0;
   minInc=Number(data.minIncrement)||5;
-  highestBidEl.textContent=euro(highest);
+  if (highest > 0) {
+  highestBidEl.textContent = euro(highest);
+} else {
+  highestBidEl.textContent = "€20 (startbod)";
+}
+
   minIncEl.textContent=minInc;
-  bidInput.min=String(highest+minInc);
+  const requiredMin = highest > 0 ? (highest + minInc) : 20;
+bidInput.min = String(requiredMin);
   lastUpdatedEl.textContent="Laatst bijgewerkt: "+new Date().toLocaleString("nl-NL");
   if(Array.isArray(data.top10)&&data.top10.length){
    top10El.innerHTML=data.top10.map(it=>
@@ -153,7 +159,13 @@ form.target="postTarget";
 form.addEventListener("submit",e=>{
  e.preventDefault();
  const bid=Number(bidInput.value);
- if(bid<highest+minInc){setMsg("Te laag bod","err");return;}
+const requiredMin = highest > 0 ? (highest + minInc) : 20;
+
+if (bid < requiredMin) {
+  setMsg("Te laag bod. Minimaal: €" + requiredMin, "err");
+  return;
+}
+
  setMsg("Bod wordt verzonden…","");
  form.submit();
  setTimeout(async()=>{
@@ -177,6 +189,7 @@ setInterval(refresh,15000);
 </script>
 </body>
 </html>
+
 
 
 
