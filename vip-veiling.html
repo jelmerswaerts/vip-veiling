@@ -14,12 +14,7 @@
       --ok:#00c36a;
       --err:#ff4d4d;
     }
-    body{
-      margin:0;
-      font-family:system-ui,Arial;
-      color:#e8e8e8;
-      background:transparent;
-    }
+    body{margin:0;font-family:system-ui,Arial;color:#e8e8e8;background:transparent;}
     .wrap{max-width:720px;margin:0 auto;padding:12px}
     h2{color:var(--red);margin:0 0 12px 0;}
     h3,h4{color:var(--red);margin:0 0 10px 0;}
@@ -78,31 +73,32 @@
     <div class="card">
       <h3>Plaats je bod</h3>
 
-      <form id="bidForm">
+      <!-- Visible form (post naar hidden iframe) -->
+      <form id="bidForm" method="POST">
         <div class="row">
           <div class="col">
             <label>Voornaam</label>
-            <input id="firstName" required autocomplete="given-name">
+            <input id="firstName" name="firstName" required autocomplete="given-name">
           </div>
           <div class="col">
             <label>Achternaam</label>
-            <input id="lastName" required autocomplete="family-name">
+            <input id="lastName" name="lastName" required autocomplete="family-name">
           </div>
         </div>
 
         <div class="row">
           <div class="col">
             <label>E-mail</label>
-            <input id="email" type="email" required autocomplete="email">
+            <input id="email" name="email" type="email" required autocomplete="email">
           </div>
           <div class="col">
             <label>Telefoon</label>
-            <input id="phone" required autocomplete="tel">
+            <input id="phone" name="phone" required autocomplete="tel">
           </div>
         </div>
 
         <label>Bod (euro)</label>
-        <input id="bid" type="number" min="1" step="1" required>
+        <input id="bid" name="bid" type="number" min="1" step="1" required>
 
         <div class="muted" style="margin-top:10px">
           Door te bieden ga je akkoord: bieden is bindend en betaling volgt na afloop.
@@ -119,9 +115,13 @@
     </div>
   </div>
 
+  <!-- Hidden iframe target for POST -->
+  <iframe name="postTarget" style="display:none;width:0;height:0;border:0"></iframe>
+
 <script>
 (() => {
-  const API_URL = "https://script.google.com/macros/s/AKfycbyyVYNzNd_xYv9ILEqRcPkOYyRpwz-x0hCoMIaQX66HRAtw8Sz3DiauSq-_S4aCs_cOSA/exec";
+  // 🔥 Zet hier jouw NIEUWE Apps Script /exec URL (na JSONP-aanpassing + nieuwe implementatie)
+  const API_URL = "https://script.google.com/macros/s/AKfycbzjR24XCfuIb3vM1d4E0TIh7Tw2rdVh7i92YgZgi9XQe3lTkyM0QSAEvlIIjXry8AhT/exec";
 
   const $ = (id) => document.getElementById(id);
   const euro = (n) => "€" + (Number(n) || 0).toLocaleString("nl-NL");
@@ -140,20 +140,40 @@
 
   let highest = 0;
   let minInc = 5;
+  let submitting = false;
 
   function setMsg(text, kind){
     msgEl.textContent = text || "";
     msgEl.className = "msg " + (kind || "");
   }
 
+  // JSONP helper (no CORS)
+  function jsonp(url) {
+    return new Promise((resolve, reject) => {
+      const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+      window[cb] = (data) => {
+        try { delete window[cb]; } catch {}
+        script.remove();
+        resolve(data);
+      };
+      const script = document.createElement("script");
+      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+      script.onerror = () => {
+        try { delete window[cb]; } catch {}
+        script.remove();
+        reject(new Error("JSONP laden mislukt"));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
   async function refresh(){
     try{
-      const res = await fetch(API_URL, { method: "GET" });
-      const data = await res.json();
-      if(!data.ok) throw new Error("Kon data niet laden.");
+      const data = await jsonp(API_URL);
+      if(!data || !data.ok) throw new Error("Kon data niet laden.");
 
       highest = Number(data.highestBid) || 0;
-      minInc = Number(data.minIncrement) || 5;
+      minInc  = Number(data.minIncrement) || 5;
 
       highestBidEl.textContent = euro(highest);
       minIncEl.textContent = minInc;
@@ -169,52 +189,52 @@
       } else {
         top10El.innerHTML = "<div>Nog geen biedingen.</div>";
       }
-
-      setMsg("", "");
     } catch(e){
       setMsg("Fout bij laden: " + e.message, "err");
       top10El.textContent = "Kon top 10 niet laden.";
     }
   }
 
+  // Setup form to POST to hidden iframe (no CORS issues)
+  form.action = API_URL;
+  form.target = "postTarget";
+
   form.addEventListener("submit", async (e) => {
+    // We willen eerst client-side checken, daarna normaal posten naar iframe
+    if (submitting) return; // voorkomt double submit
     e.preventDefault();
-    setMsg("", "");
 
     const bid = Number(bidInput.value);
     const required = highest + minInc;
+
     if(!Number.isFinite(bid) || bid < required){
       setMsg("Te laag bod. Minimaal: " + euro(required), "err");
       return;
     }
 
+    // Verstuur (form POST naar hidden iframe)
+    submitting = true;
+    setMsg("Bod wordt verzonden…", "");
+
     try{
-      const body = new URLSearchParams({
-        firstName: $("firstName").value.trim(),
-        lastName: $("lastName").value.trim(),
-        email: $("email").value.trim(),
-        phone: $("phone").value.trim(),
-        bid: String(bid)
-      }).toString();
+      // Nu de echte submit (zonder recursion)
+      setTimeout(() => {
+        try {
+          form.submit();
+        } finally {
+          // Na kort moment refreshen (server schrijft naar sheet)
+          setTimeout(async () => {
+            await refresh();
+            setMsg("✅ Bod geplaatst! Dankjewel.", "ok");
+            form.reset();
+            submitting = false;
+          }, 900);
+        }
+      }, 50);
 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-        body
-      });
-
-      const data = await res.json();
-      if(!data.ok){
-        setMsg(data.error || "Bod niet geaccepteerd.", "err");
-        await refresh();
-        return;
-      }
-
-      setMsg("✅ Bod geplaatst! Dankjewel.", "ok");
-      form.reset();
-      await refresh();
-    } catch(e2){
-      setMsg("Fout bij versturen: " + e2.message, "err");
+    } catch(err){
+      setMsg("Fout bij versturen.", "err");
+      submitting = false;
     }
   });
 
