@@ -178,7 +178,8 @@ if (bid < requiredMin) {
 form.addEventListener("submit", e => {
   e.preventDefault();
 
-  // ✅ zorg dat auction altijd meegaat
+  // ✅ ALTIJD de gekozen veiling meesturen
+  currentAuction = select.value; // safety
   $("auctionInput").value = currentAuction;
 
   const bid = Number(bidInput.value);
@@ -197,10 +198,11 @@ form.addEventListener("submit", e => {
     setMsg("✅ Bod geplaatst!", "ok");
     form.reset();
 
-    // ✅ reset zet hidden soms leeg → weer terugzetten
+    // ✅ reset kan hidden input leeg maken → terugzetten
     $("auctionInput").value = currentAuction;
   }, 1000);
 });
+
 
 
 refresh();
@@ -210,6 +212,7 @@ setInterval(refresh,15000);
 </script>
 </body>
 </html>
+
 
 
 
