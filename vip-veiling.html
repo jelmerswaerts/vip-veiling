@@ -103,7 +103,7 @@ const form=$("bidForm");
 const msgEl=$("msg");
 const bidInput=$("bid");
 
-let currentAuction = select.value;
+let currentAuction = "";
 let highest=0,minInc=5;
 
 AUCTIONS.filter(a=>a.enabled).forEach(a=>{
@@ -175,10 +175,31 @@ if (bid < requiredMin) {
  },1000);
 });
 
-select.addEventListener("change", async ()=>{
-  currentAuction = select.value;
+form.addEventListener("submit", e => {
+  e.preventDefault();
+
+  // ✅ zorg dat auction altijd meegaat
   $("auctionInput").value = currentAuction;
-  await refresh();
+
+  const bid = Number(bidInput.value);
+  const requiredMin = highest > 0 ? (highest + minInc) : 20;
+
+  if (bid < requiredMin) {
+    setMsg("Te laag bod. Minimaal: €" + requiredMin, "err");
+    return;
+  }
+
+  setMsg("Bod wordt verzonden…", "");
+  form.submit();
+
+  setTimeout(async () => {
+    await refresh();
+    setMsg("✅ Bod geplaatst!", "ok");
+    form.reset();
+
+    // ✅ reset zet hidden soms leeg → weer terugzetten
+    $("auctionInput").value = currentAuction;
+  }, 1000);
 });
 
 
@@ -189,6 +210,7 @@ setInterval(refresh,15000);
 </script>
 </body>
 </html>
+
 
 
 
