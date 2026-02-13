@@ -41,13 +41,9 @@
       cursor:pointer;
       background:linear-gradient(145deg,#7a0000,var(--red));
       color:#fff;
-      font-weight:600
+      font-weight:600;
     }
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-      filter:saturate(.7);
-    }
+    button:disabled{opacity:.55;cursor:not-allowed;filter:saturate(.7);}
     .msg{margin-top:10px}
     .msg.ok{color:var(--ok)}
     .msg.err{color:var(--err)}
@@ -70,7 +66,7 @@
     <div class="muted" style="margin-top:6px" id="endsInfo"></div>
   </div>
 
-  <!-- Formulier + selectie -->
+  <!-- Formulier -->
   <div class="card">
     <h3>Plaats je bod</h3>
 
@@ -112,25 +108,23 @@
       <div id="top10" class="muted">Laden…</div>
     </div>
   </div>
-
 </div>
 
-<!-- hidden iframe target for POST -->
 <iframe name="postTarget" style="display:none"></iframe>
 
 <script>
 (() => {
-  const API_URL = "https://script.google.com/macros/s/AKfycbxcyEsZoXK2Q7YaosFPf4wN-6u9A1isUWoI-m_9wrzDVHgEpToGmYiuK9-XL1Jzixc_/exec";
+  // 👇 PLAK HIER JE /exec URL
+  const API_URL = "https://script.google.com/macros/s/AKfycbyXPQyS4WCHddRqNFirdSJiXRgiTRvnk_HQYAKTidZ77M-GHkwF87a5hpHoR1gRN4A3/exec";
   const START_BID = 50;
 
   const AUCTIONS = [
-    {id:"2027-01-22", label:"Vrijdag 22-01-2027", enabled:true},
-    {id:"2027-01-23", label:"Zaterdag 23-01-2027", enabled:true},
-    {id:"2027-01-24", label:"Zondag 24-01-2027", enabled:true},
-    {id:"2027-01-29", label:"Vrijdag 29-01-2027", enabled:true},
-    {id:"2027-01-30", label:"Zaterdag 30-01-2027", enabled:true}
+    {id:"2027-01-22", label:"Vrijdag 22 januari 2027", enabled:true},
+    {id:"2027-01-23", label:"Zaterdag 23 januari 2027", enabled:true},
+    {id:"2027-01-24", label:"Zondag 24 januari 2027", enabled:true},
+    {id:"2027-01-29", label:"Vrijdag 29 januari 2027", enabled:true},
+    {id:"2027-01-30", label:"Zaterdag 30 januari 2027", enabled:true}
   ];
-  // 👉 Later een avond weghalen? Zet enabled:false of verwijder de regel.
 
   const $ = (id) => document.getElementById(id);
   const euro = (n) => "€" + (Number(n) || 0).toLocaleString("nl-NL");
@@ -145,7 +139,6 @@
   const lastUpdatedEl = $("lastUpdated");
   const endsInfoEl = $("endsInfo");
   const top10El = $("top10");
-
   const form = $("bidForm");
   const msgEl = $("msg");
   const bidInput = $("bid");
@@ -161,6 +154,9 @@
     opt.textContent = a.label;
     select.appendChild(opt);
   });
+
+  // ✅ zorg dat er altijd een selectie is
+  if (!select.value && select.options.length) select.selectedIndex = 0;
 
   function setMsg(t, k){
     msgEl.textContent = t || "";
@@ -198,30 +194,28 @@
 
       const requiredMin = Number(data.requiredMin) || (highest > 0 ? highest + minInc : START_BID);
 
-      if (highest > 0) {
-        highestBidEl.textContent = euro(highest);
-      } else {
-        highestBidEl.textContent = "€" + START_BID + " (startbod)";
-      }
-
+      highestBidEl.textContent = (highest > 0) ? euro(highest) : ("€" + START_BID + " (startbod)");
       minIncEl.textContent = minInc;
       requiredMinEl.textContent = euro(requiredMin);
       bidInput.min = String(requiredMin);
 
       lastUpdatedEl.textContent = "Laatst bijgewerkt: " + new Date().toLocaleString("nl-NL");
 
-      // ✅ Cruciaal voor countdown: sla endsAt op in dataset
+      // endsAt voor countdown
       if (data.endsAt) {
         endsInfoEl.dataset.endsAt = data.endsAt;
-        // (optioneel) toon ook de absolute sluit-tijd als het nog lang duurt
-        // endsInfoEl.textContent = "Veiling sluit om: " + new Date(data.endsAt).toLocaleString("nl-NL");
       } else {
         delete endsInfoEl.dataset.endsAt;
         endsInfoEl.textContent = "";
       }
 
-      // Formulier (weer) aanzetten als veiling open is
-      if (submitBtn) submitBtn.disabled = false;
+      // open/closed UI
+      if (data.closed) {
+        submitBtn.disabled = true;
+        setMsg("Veiling is gesloten.", "err");
+      } else {
+        submitBtn.disabled = false;
+      }
 
       if(Array.isArray(data.top10) && data.top10.length){
         top10El.innerHTML = data.top10.map(it =>
@@ -231,10 +225,6 @@
         top10El.innerHTML = "Nog geen biedingen.";
       }
 
-      // clear only load errors
-      if (msgEl.classList.contains("err") && msgEl.textContent.startsWith("Fout bij laden")) {
-        setMsg("", "");
-      }
     } catch(e) {
       setMsg("Fout bij laden: " + e.message, "err");
       top10El.textContent = "Kon top 10 niet laden.";
@@ -248,7 +238,7 @@
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    if (submitBtn && submitBtn.disabled) {
+    if (submitBtn.disabled) {
       setMsg("Veiling is gesloten.", "err");
       return;
     }
@@ -268,19 +258,19 @@
       await refresh();
       setMsg("✅ Bod geplaatst!", "ok");
       form.reset();
-    }, 1000);
+      // behoud selectie na reset
+      // (reset kan dropdown terugzetten; we zetten hem terug)
+      if (!select.value && select.options.length) select.selectedIndex = 0;
+    }, 1200);
   });
 
-  // Als je van avond wisselt: direct refreshen
   select.addEventListener("change", async () => {
+    setMsg("", "");
     await refresh();
   });
 
-  refresh();
-
-  // ✅ Countdown elke seconde (zonder extra API-calls)
+  // Countdown elke seconde op basis van endsAt (zonder extra API calls)
   setInterval(() => {
-    if (!endsInfoEl) return;
     const iso = endsInfoEl.dataset.endsAt;
     if (!iso) return;
 
@@ -290,15 +280,12 @@
 
     if (diff <= 0) {
       endsInfoEl.textContent = "Veiling is gesloten.";
-      if (submitBtn) submitBtn.disabled = true;
+      submitBtn.disabled = true;
       return;
     }
 
-    // days / hours / mins / secs
-    const days = Math.floor(diff / 86400);
-    diff -= days * 86400;
-    const hours = Math.floor(diff / 3600);
-    diff -= hours * 3600;
+    const days = Math.floor(diff / 86400); diff -= days * 86400;
+    const hours = Math.floor(diff / 3600); diff -= hours * 3600;
     const mins = Math.floor(diff / 60);
     const secs = diff % 60;
 
@@ -311,11 +298,9 @@
     endsInfoEl.textContent = "Veiling sluit over: " + parts.join(" ");
   }, 1000);
 
+  refresh();
   setInterval(refresh, 15000);
 })();
 </script>
 </body>
 </html>
-
-
-
