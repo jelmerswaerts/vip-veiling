@@ -96,7 +96,7 @@
       </div>
 
       <label>Bod (euro)</label>
-      <input id="bid" name="bid" type="number" min="20" step="1" required>
+      <input id="bid" name="bid" type="number" min="50" step="1" required>
 
       <button type="submit">Bod plaatsen</button>
       <div id="msg" class="msg"></div>
@@ -116,7 +116,7 @@
 <script>
 (() => {
   const API_URL = "https://script.google.com/macros/s/AKfycbzGUolESnM3OBuoy-ZyXJzr4kYqsqRRxvzr4Vz-AQPMR2uarhnY5KeST2bC2lCyW_jGtA/exec";
-  const START_BID = 20;
+  const START_BID = 50;
 
   const AUCTIONS = [
     {id:"2027-01-29", label:"Vrijdag 29-01-2027", enabled:true},
@@ -260,6 +260,7 @@
 </script>
 </body>
 </html>
+
 
 
 
