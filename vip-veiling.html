@@ -43,6 +43,11 @@
       color:#fff;
       font-weight:600
     }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      filter:saturate(.7);
+    }
     .msg{margin-top:10px}
     .msg.ok{color:var(--ok)}
     .msg.err{color:var(--err)}
@@ -62,6 +67,7 @@
       Minimale verhoging: €<span id="minInc">…</span> • Minimaal bod: <span id="requiredMin">…</span>
     </div>
     <div class="muted" style="margin-top:6px" id="lastUpdated"></div>
+    <div class="muted" style="margin-top:6px" id="endsInfo"></div>
   </div>
 
   <!-- Formulier + selectie -->
@@ -69,7 +75,6 @@
     <h3>Plaats je bod</h3>
 
     <form id="bidForm" method="POST">
-      <!-- ✅ Selectie zit IN het formulier en heeft name="auction" -->
       <label>Kies speelavond:</label>
       <select id="auctionSelect" name="auction"></select>
 
@@ -98,7 +103,7 @@
       <label>Bod (euro)</label>
       <input id="bid" name="bid" type="number" min="50" step="1" required>
 
-      <button type="submit">Bod plaatsen</button>
+      <button id="submitBtn" type="submit">Bod plaatsen</button>
       <div id="msg" class="msg"></div>
     </form>
 
@@ -115,7 +120,7 @@
 
 <script>
 (() => {
-  const API_URL = "https://script.google.com/macros/s/AKfycbztpkjN_iBAHQCxjTfD9Jy_ZleZFIF03PEEjwmbTcA2Qs-sPGWqZJDTGwM4azVE6rTP3Q/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbzYF7K1MIQRFNw6cvprbW8na3-0_on3b-DqcwhjKs8r6KGFT4CSpTeWUvRCAymMK5rtcw/exec";
   const START_BID = 50;
 
   const AUCTIONS = [
@@ -138,10 +143,13 @@
   const minIncEl = $("minInc");
   const requiredMinEl = $("requiredMin");
   const lastUpdatedEl = $("lastUpdated");
+  const endsInfoEl = $("endsInfo");
   const top10El = $("top10");
+
   const form = $("bidForm");
   const msgEl = $("msg");
   const bidInput = $("bid");
+  const submitBtn = $("submitBtn");
 
   let highest = 0;
   let minInc = 5;
@@ -198,10 +206,22 @@
 
       minIncEl.textContent = minInc;
       requiredMinEl.textContent = euro(requiredMin);
-
       bidInput.min = String(requiredMin);
 
       lastUpdatedEl.textContent = "Laatst bijgewerkt: " + new Date().toLocaleString("nl-NL");
+
+      // ✅ Cruciaal voor countdown: sla endsAt op in dataset
+      if (data.endsAt) {
+        endsInfoEl.dataset.endsAt = data.endsAt;
+        // (optioneel) toon ook de absolute sluit-tijd als het nog lang duurt
+        // endsInfoEl.textContent = "Veiling sluit om: " + new Date(data.endsAt).toLocaleString("nl-NL");
+      } else {
+        delete endsInfoEl.dataset.endsAt;
+        endsInfoEl.textContent = "";
+      }
+
+      // Formulier (weer) aanzetten als veiling open is
+      if (submitBtn) submitBtn.disabled = false;
 
       if(Array.isArray(data.top10) && data.top10.length){
         top10El.innerHTML = data.top10.map(it =>
@@ -228,6 +248,11 @@
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
+    if (submitBtn && submitBtn.disabled) {
+      setMsg("Veiling is gesloten.", "err");
+      return;
+    }
+
     const bid = Number(bidInput.value);
     const requiredMin = Number(bidInput.min) || START_BID;
 
@@ -243,9 +268,6 @@
       await refresh();
       setMsg("✅ Bod geplaatst!", "ok");
       form.reset();
-
-      // na reset: select terugzetten op huidige waarde (blijft meestal staan, maar safe)
-      // (optioneel) niks doen; select blijft doorgaans gekozen.
     }, 1000);
   });
 
@@ -255,15 +277,42 @@
   });
 
   refresh();
+
+  // ✅ Countdown elke seconde (zonder extra API-calls)
+  setInterval(() => {
+    if (!endsInfoEl) return;
+    const iso = endsInfoEl.dataset.endsAt;
+    if (!iso) return;
+
+    const endMs = new Date(iso).getTime();
+    const nowMs = Date.now();
+    let diff = Math.floor((endMs - nowMs) / 1000);
+
+    if (diff <= 0) {
+      endsInfoEl.textContent = "Veiling is gesloten.";
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    // days / hours / mins / secs
+    const days = Math.floor(diff / 86400);
+    diff -= days * 86400;
+    const hours = Math.floor(diff / 3600);
+    diff -= hours * 3600;
+    const mins = Math.floor(diff / 60);
+    const secs = diff % 60;
+
+    const parts = [];
+    if (days) parts.push(days + " dag" + (days === 1 ? "" : "en"));
+    if (hours) parts.push(hours + " uur");
+    parts.push(mins + " min");
+    parts.push(String(secs).padStart(2, "0") + " sec");
+
+    endsInfoEl.textContent = "Veiling sluit over: " + parts.join(" ");
+  }, 1000);
+
   setInterval(refresh, 15000);
 })();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
