@@ -149,6 +149,7 @@ button:disabled{
   margin-top:8px;
 }
 
+/* Popup */
 .popup{
   display:none;
   position:fixed;
@@ -160,7 +161,7 @@ button:disabled{
 }
 .popup-content{
   width:100%;
-  max-width:420px;
+  max-width:440px;
   background:#111;
   border:1px solid rgba(179,0,0,.35);
   border-radius:14px;
@@ -172,6 +173,15 @@ button:disabled{
   color:var(--red);
 }
 .popup p{margin:8px 0; color:#ddd; line-height:1.5}
+.popup .summary{
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  color:#eee;
+}
+.popup .summary .line{margin:6px 0}
 .popup .btnRow{
   display:flex;
   gap:10px;
@@ -216,7 +226,6 @@ button:disabled{
   <div class="card">
     <h3 style="margin:0 0 12px;color:var(--red)">Plaats je bod</h3>
 
-    <!-- POST via hidden iframe (CORS-proof) -->
     <form id="bidForm" method="POST" target="postTarget">
       <label>Kies speelavond:</label>
       <select id="auctionSelect" name="auction"></select>
@@ -267,16 +276,21 @@ button:disabled{
 
 </div>
 
-<!-- verborgen iframe voor POST -->
 <iframe name="postTarget" style="display:none"></iframe>
 
-<!-- Popup bevestiging -->
-<div id="confirmPopup" class="popup">
-  <div class="popup-content">
-    <h3>Bevestig je bod</h3>
+<!-- Popup -->
+<div id="confirmPopup" class="popup" aria-hidden="true">
+  <div class="popup-content" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+    <h3 id="popTitle">Bevestig je bod</h3>
     <p>Je staat op het punt een <strong>bindend bod</strong> te plaatsen. Dit bod kan niet worden ingetrokken.</p>
+
+    <div class="summary">
+      <div class="line"><span class="muted">Voorstelling:</span> <strong id="popAuction">—</strong></div>
+      <div class="line"><span class="muted">Bod:</span> <strong id="popBid">—</strong></div>
+    </div>
+
     <div class="btnRow">
-      <button type="button" onclick="confirmBid()">Ja, plaats bod</button>
+      <button id="popConfirmBtn" type="button" onclick="confirmBid()">Ja, plaats bod</button>
       <button type="button" class="btnGhost" onclick="closePopup()">Annuleren</button>
     </div>
   </div>
@@ -306,6 +320,12 @@ button:disabled{
   const bidInput = $("bid");
   const msgEl = $("msg");
   const submitBtn = $("submitBtn");
+  const form = $("bidForm");
+
+  const popup = $("confirmPopup");
+  const popAuction = $("popAuction");
+  const popBid = $("popBid");
+  const popConfirmBtn = $("popConfirmBtn");
 
   function setMsg(text, type){
     msgEl.textContent = text || "";
@@ -342,8 +362,7 @@ button:disabled{
   });
   if (!select.value && select.options.length) select.selectedIndex = 0;
 
-  // Form action/target voor POST via iframe
-  const form = $("bidForm");
+  // POST target
   form.action = API_URL;
 
   async function refresh(){
@@ -372,7 +391,6 @@ button:disabled{
         setMsg("Veiling is gesloten.", "err");
       } else {
         submitBtn.disabled = false;
-        // alleen load-fouten wissen (niet je OK-melding meteen wegpoetsen)
         if (msgEl.classList.contains("err") && msgEl.textContent.startsWith("Fout bij laden")) setMsg("", "");
       }
 
@@ -388,7 +406,6 @@ button:disabled{
     }
   }
 
-  // Countdown tick (zonder extra API-calls)
   function tickCountdown(){
     const el = $("countdown");
     if (!endsAtIso){
@@ -419,7 +436,25 @@ button:disabled{
     el.textContent = "Veiling sluit over: " + parts.join(" ");
   }
 
-  // Popup flow
+  function openPopupSummary(){
+    const auctionLabel = select.options[select.selectedIndex]?.textContent || select.value || "—";
+    const bid = Number(bidInput.value);
+    popAuction.textContent = auctionLabel;
+    popBid.textContent = euro(bid);
+
+    popup.style.display = "flex";
+    popup.setAttribute("aria-hidden","false");
+
+    // focus naar de bevestigknop
+    setTimeout(() => popConfirmBtn.focus(), 0);
+  }
+
+  function closePopupInternal(){
+    popup.style.display = "none";
+    popup.setAttribute("aria-hidden","true");
+  }
+
+  // Submit (open popup)
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     setMsg("", "");
@@ -437,25 +472,38 @@ button:disabled{
       return;
     }
 
-    $("confirmPopup").style.display = "flex";
+    openPopupSummary();
   });
 
-  window.closePopup = function(){
-    $("confirmPopup").style.display = "none";
-  };
+  // wisselen van avond
+  select.addEventListener("change", async () => {
+    setMsg("", "");
+    await refresh();
+  });
 
-  window.confirmBid = async function(){
-    closePopup();
+  // Klik buiten popup-content sluit popup
+  popup.addEventListener("click", (e) => {
+    if (e.target === popup) closePopupInternal();
+  });
+
+  // Escape sluit popup
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && popup.style.display === "flex") closePopupInternal();
+  });
+
+  // Expose for onclick
+  window.closePopup = function(){ closePopupInternal(); };
+
+  window.confirmBid = function(){
+    closePopupInternal();
     setMsg("Bod wordt verzonden…", "");
 
-    // Submit via iframe (CORS-proof)
+    // POST via iframe (CORS-proof)
     form.submit();
 
-    // Wacht even en refresh daarna (server schrijft naar sheet)
     setTimeout(async () => {
       await refresh();
 
-      // Form reset maar selectie behouden
       const keepAuction = select.value;
       form.reset();
       select.value = keepAuction;
@@ -463,11 +511,6 @@ button:disabled{
       setMsg("✅ Bod geplaatst!", "ok");
     }, 1200);
   };
-
-  select.addEventListener("change", async () => {
-    setMsg("", "");
-    await refresh();
-  });
 
   refresh();
   setInterval(refresh, 15000);
