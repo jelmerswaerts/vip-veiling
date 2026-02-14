@@ -1,128 +1,148 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="nl">
 <head>
-<meta charset="UTF-8">
-<title>Veiling</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIP Veiling</title>
 
 <style>
-
+:root{
+ --red:#b30000;
+ --bg1:#0b0b0b;
+ --bg2:#161616;
+ --line:rgba(140,0,0,.45);
+ --muted:#9a9a9a;
+ --ok:#00c36a;
+ --err:#ff4d4d;
+}
 body{
-    background:#111;
-    color:white;
-    font-family:Arial;
+ margin:0;
+ font-family:system-ui,Arial;
+ background:#000;
+ color:#fff;
 }
-
-.veiling-box{
-    max-width:500px;
-    margin:50px auto;
-    background:#1a1a1a;
-    padding:25px;
-    border-radius:8px;
-    text-align:center;
+.wrap{
+ max-width:720px;
+ margin:0 auto;
+ padding:20px;
 }
-
-input{
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    font-size:18px;
-    background:#000;
-    border:1px solid #444;
-    color:white;
+.card{
+ background:linear-gradient(145deg,var(--bg1),var(--bg2));
+ border:1px solid var(--line);
+ border-radius:14px;
+ padding:20px;
+ margin:20px 0;
 }
-
-.biedknop{
-    width:100%;
-    padding:15px;
-    margin-top:15px;
-    font-size:18px;
-    background:#b30000;
-    color:white;
-    border:none;
-    cursor:pointer;
+.big{
+ font-size:1.6rem;
+ font-weight:700;
+ color:var(--red);
 }
-
-.biedknop:hover{
-    background:#e60000;
+.muted{color:var(--muted);}
+.row{display:flex;gap:12px;flex-wrap:wrap;}
+.col{flex:1;min-width:220px;}
+input,select{
+ width:100%;
+ padding:10px;
+ border-radius:8px;
+ border:1px solid #333;
+ background:#121212;
+ color:#fff;
+ box-sizing:border-box;
 }
-
-.voorwaarden-box{
-    margin-top:15px;
-    font-size:14px;
-    text-align:left;
+button{
+ margin-top:16px;
+ padding:12px 18px;
+ border-radius:8px;
+ border:none;
+ cursor:pointer;
+ background:linear-gradient(145deg,#7a0000,var(--red));
+ color:#fff;
+ font-weight:600;
 }
-
-.voorwaarden-box a{
-    color:#ff4d4d;
-    text-decoration:none;
+.msg{margin-top:10px;}
+.msg.ok{color:var(--ok);}
+.msg.err{color:var(--err);}
+.top10item{
+ padding:6px 0;
+ border-bottom:1px dashed rgba(120,0,0,.2);
 }
-
-.voorwaarden-box a:hover{
-    text-decoration:underline;
+.checkbox-box{
+ margin-top:15px;
+ font-size:14px;
 }
-
-/* Popup */
+.checkbox-box a{
+ color:#ff4d4d;
+ text-decoration:none;
+}
+.checkbox-box a:hover{text-decoration:underline;}
 
 .popup{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.85);
+ display:none;
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.85);
 }
-
 .popup-content{
-    background:#1a1a1a;
-    max-width:400px;
-    margin:150px auto;
-    padding:25px;
-    border-radius:8px;
-    text-align:center;
+ background:#1a1a1a;
+ max-width:400px;
+ margin:150px auto;
+ padding:25px;
+ border-radius:10px;
+ text-align:center;
 }
-
-.popup-content h2{
-    margin-bottom:15px;
-}
-
-.popup-content p{
-    margin-bottom:10px;
-}
-
-.popup-buttons button{
-    padding:12px 20px;
-    margin:8px;
-    border:none;
-    cursor:pointer;
-    font-size:16px;
-}
-
-.bevestig{
-    background:#b30000;
-    color:white;
-}
-
-.annuleer{
-    background:#444;
-    color:white;
-}
-
 </style>
 </head>
 
 <body>
+<div class="wrap">
 
-<div class="veiling-box">
+<div class="card">
+<div class="big">Huidig hoogste bod: <span id="highestBid">…</span></div>
+<div class="muted">
+Minimale verhoging: €<span id="minInc">5</span> •
+Minimaal bod: <span id="requiredMin">…</span>
+</div>
+<div class="muted" id="endsInfo"></div>
+</div>
 
-<h2>Plaats een bod</h2>
+<div class="card">
+<h3>Plaats je bod</h3>
 
-<input type="number" id="bodBedrag" placeholder="Voer je bod in">
+<form id="bidForm">
 
-<div class="voorwaarden-box">
+<label>Kies speelavond:</label>
+<select id="auctionSelect"></select>
+
+<div class="row">
+<div class="col">
+<label>Voornaam</label>
+<input id="firstName" required>
+</div>
+<div class="col">
+<label>Achternaam</label>
+<input id="lastName" required>
+</div>
+</div>
+
+<div class="row">
+<div class="col">
+<label>E-mail</label>
+<input id="email" type="email" required>
+</div>
+<div class="col">
+<label>Telefoon</label>
+<input id="phone" required>
+</div>
+</div>
+
+<label>Bod (€)</label>
+<input id="bid" type="number" min="50" required>
+
+<div class="checkbox-box">
 <label>
 <input type="checkbox" id="voorwaardenCheck">
-Ik ga akkoord met de 
+Ik ga akkoord met de
 <a href="https://www.toneelvereniginglely.nl/algemene-voorwaarden" target="_blank">
 algemene voorwaarden
 </a>
@@ -130,124 +150,127 @@ en begrijp dat mijn bod bindend is.
 </label>
 </div>
 
-<button class="biedknop" onclick="controleerVoorwaarden()">
-Bod plaatsen
-</button>
+<button type="submit">Bod plaatsen</button>
+<div id="msg" class="msg"></div>
 
+</form>
+
+<div style="margin-top:20px">
+<h4>Top 10 biedingen</h4>
+<div id="top10" class="muted">Laden…</div>
 </div>
 
+</div>
+</div>
 
-<!-- Popup -->
-
-<div id="voorwaardenPopup" class="popup">
-
+<!-- POPUP -->
+<div id="confirmPopup" class="popup">
 <div class="popup-content">
-
 <h2>Bevestig je bod</h2>
-
-<p>
-Je staat op het punt een <strong>bindend bod</strong> te plaatsen.
-</p>
-
-<p>
-Dit bod kan niet worden geannuleerd.
-</p>
-
-<div class="popup-buttons">
-
-<button class="bevestig" onclick="bevestigBod()">
-Bevestigen
-</button>
-
-<button class="annuleer" onclick="sluitPopup()">
-Annuleren
-</button>
-
-</div>
-
+<p>Dit bod is bindend en kan niet worden ingetrokken.</p>
+<button onclick="confirmBid()">Bevestigen</button>
+<button onclick="closePopup()">Annuleren</button>
 </div>
 </div>
-
 
 <script>
+const API_URL="https://script.google.com/macros/s/AKfycbyPahgvyBD-8kr4-gI2pqIAe1q_iGgF0YbZqd-Sp2-YdBvoMPfmQoS0T59gsBaBrDiMXA/exec";
+const START_BID=50;
 
-function controleerVoorwaarden(){
+const AUCTIONS=[
+{id:"2027-01-22",label:"Vrijdag 22 januari 2027"},
+{id:"2027-01-23",label:"Zaterdag 23 januari 2027"},
+{id:"2027-01-24",label:"Zondag 24 januari 2027"},
+{id:"2027-01-29",label:"Vrijdag 29 januari 2027"},
+{id:"2027-01-30",label:"Zaterdag 30 januari 2027"}
+];
 
-    if(!document.getElementById("voorwaardenCheck").checked){
+const $=id=>document.getElementById(id);
+const euro=n=>"€"+Number(n).toLocaleString("nl-NL");
 
-        alert("Je moet akkoord gaan met de algemene voorwaarden.");
+let highest=0,minInc=5;
 
-        return;
-    }
+AUCTIONS.forEach(a=>{
+ const o=document.createElement("option");
+ o.value=a.id;
+ o.textContent=a.label;
+ $("auctionSelect").appendChild(o);
+});
 
-    var bedrag = document.getElementById("bodBedrag").value;
+async function refresh(){
+ try{
+  const res=await fetch(API_URL+"?auction="+$("auctionSelect").value);
+  const data=await res.json();
+  if(!data.ok) throw new Error();
 
-    if(!bedrag || bedrag <= 0){
+  highest=data.highestBid||0;
+  minInc=data.minIncrement||5;
 
-        alert("Voer een geldig bod in.");
+  const required=data.requiredMin||START_BID;
 
-        return;
-    }
+  $("highestBid").textContent=highest?euro(highest):"€50 (startbod)";
+  $("requiredMin").textContent=euro(required);
+  $("bid").min=required;
 
-    document.getElementById("voorwaardenPopup").style.display = "block";
+  if(data.top10?.length){
+    $("top10").innerHTML=data.top10.map(r=>
+      `<div class="top10item">${r.date} - ${r.name} - ${euro(r.bid)}</div>`
+    ).join("");
+  }else{
+    $("top10").textContent="Nog geen biedingen.";
+  }
 
+ }catch{
+   $("msg").textContent="Fout bij laden.";
+ }
 }
 
+$("auctionSelect").addEventListener("change",refresh);
 
-function sluitPopup(){
+$("bidForm").addEventListener("submit",e=>{
+ e.preventDefault();
 
-    document.getElementById("voorwaardenPopup").style.display = "none";
+ if(!$("voorwaardenCheck").checked){
+  alert("Je moet akkoord gaan met de voorwaarden.");
+  return;
+ }
 
+ const bid=Number($("bid").value);
+ if(bid<Number($("bid").min)){
+  alert("Te laag bod.");
+  return;
+ }
+
+ $("confirmPopup").style.display="block";
+});
+
+function closePopup(){
+ $("confirmPopup").style.display="none";
 }
 
+async function confirmBid(){
+ closePopup();
 
-function bevestigBod(){
+ const formData=new URLSearchParams();
+ formData.append("auction",$("auctionSelect").value);
+ formData.append("firstName",$("firstName").value);
+ formData.append("lastName",$("lastName").value);
+ formData.append("email",$("email").value);
+ formData.append("phone",$("phone").value);
+ formData.append("bid",$("bid").value);
 
-    sluitPopup();
+ await fetch(API_URL,{
+  method:"POST",
+  body:formData
+ });
 
-    plaatsBod();
-
+ $("msg").textContent="Bod geplaatst!";
+ $("bidForm").reset();
+ refresh();
 }
 
-
-
-/* JOUW BESTAANDE FUNCTIE */
-/* vervang de URL met jouw Apps Script URL */
-
-function plaatsBod(){
-
-    var bedrag = document.getElementById("bodBedrag").value;
-
-    fetch("https://script.google.com/macros/s/AKfycbyPahgvyBD-8kr4-gI2pqIAe1q_iGgF0YbZqd-Sp2-YdBvoMPfmQoS0T59gsBaBrDiMXA/exec", {
-
-        method:"POST",
-
-        body:JSON.stringify({
-            bod:bedrag
-        })
-
-    })
-
-    .then(res => res.json())
-
-    .then(data => {
-
-        if(data.ok){
-
-            alert("Bod succesvol geplaatst!");
-
-        }else{
-
-            alert("Fout: " + data.error);
-
-        }
-
-    })
-
-}
-
+refresh();
+setInterval(refresh,15000);
 </script>
-
-
 </body>
 </html>
