@@ -190,83 +190,113 @@ const euro=n=>"€"+Number(n).toLocaleString("nl-NL");
 
 let highest=0,minInc=5;
 
+function setMsg(text,type){
+  const el = $("msg");
+  el.textContent = text || "";
+  el.className = "msg " + (type || "");
+}
+
 AUCTIONS.forEach(a=>{
- const o=document.createElement("option");
- o.value=a.id;
- o.textContent=a.label;
- $("auctionSelect").appendChild(o);
+  const o=document.createElement("option");
+  o.value=a.id;
+  o.textContent=a.label;
+  $("auctionSelect").appendChild(o);
 });
 
 async function refresh(){
- try{
-  const res=await fetch(API_URL+"?auction="+$("auctionSelect").value);
-  const data=await res.json();
-  if(!data.ok) throw new Error();
+  try{
+    const res=await fetch(API_URL+"?auction="+encodeURIComponent($("auctionSelect").value));
+    const data=await res.json();
+    if(!data.ok) throw new Error(data.error || "Kon data niet laden");
 
-  highest=data.highestBid||0;
-  minInc=data.minIncrement||5;
+    highest = Number(data.highestBid) || 0;
+    minInc  = Number(data.minIncrement) || 5;
 
-  const required=data.requiredMin||START_BID;
+    const required = Number(data.requiredMin) || START_BID;
 
-  $("highestBid").textContent=highest?euro(highest):"€50 (startbod)";
-  $("requiredMin").textContent=euro(required);
-  $("bid").min=required;
+    $("highestBid").textContent = highest ? euro(highest) : euro(START_BID) + " (startbod)";
+    $("requiredMin").textContent = euro(required);
+    $("bid").min = String(required);
 
-  if(data.top10?.length){
-    $("top10").innerHTML=data.top10.map(r=>
-      `<div class="top10item">${r.date} - ${r.name} - ${euro(r.bid)}</div>`
-    ).join("");
-  }else{
-    $("top10").textContent="Nog geen biedingen.";
+    if(Array.isArray(data.top10) && data.top10.length){
+      $("top10").innerHTML = data.top10.map(r =>
+        `<div class="top10item">${r.date} - ${r.name} - ${euro(r.bid)}</div>`
+      ).join("");
+    }else{
+      $("top10").textContent="Nog geen biedingen.";
+    }
+
+  }catch(e){
+    setMsg("Fout bij laden: " + (e.message || ""), "err");
   }
-
- }catch{
-   $("msg").textContent="Fout bij laden.";
- }
 }
 
-$("auctionSelect").addEventListener("change",refresh);
+$("auctionSelect").addEventListener("change", () => {
+  setMsg("", "");
+  refresh();
+});
 
-$("bidForm").addEventListener("submit",e=>{
- e.preventDefault();
+$("bidForm").addEventListener("submit", e => {
+  e.preventDefault();
+  setMsg("", "");
 
- if(!$("voorwaardenCheck").checked){
-  alert("Je moet akkoord gaan met de voorwaarden.");
-  return;
- }
+  if(!$("voorwaardenCheck").checked){
+    setMsg("Je moet akkoord gaan met de voorwaarden.", "err");
+    return;
+  }
 
- const bid=Number($("bid").value);
- if(bid<Number($("bid").min)){
-  alert("Te laag bod.");
-  return;
- }
+  const bid = Number($("bid").value);
+  const min = Number($("bid").min);
 
- $("confirmPopup").style.display="block";
+  if(!Number.isFinite(bid) || bid < min){
+    setMsg("Te laag bod. Minimaal: " + euro(min), "err");
+    return;
+  }
+
+  $("confirmPopup").style.display="block";
 });
 
 function closePopup(){
- $("confirmPopup").style.display="none";
+  $("confirmPopup").style.display="none";
 }
 
 async function confirmBid(){
- closePopup();
+  closePopup();
+  setMsg("Bod wordt verzonden…", "");
 
- const formData=new URLSearchParams();
- formData.append("auction",$("auctionSelect").value);
- formData.append("firstName",$("firstName").value);
- formData.append("lastName",$("lastName").value);
- formData.append("email",$("email").value);
- formData.append("phone",$("phone").value);
- formData.append("bid",$("bid").value);
+  const formData=new URLSearchParams();
+  formData.append("auction",$("auctionSelect").value);
+  formData.append("firstName",$("firstName").value);
+  formData.append("lastName",$("lastName").value);
+  formData.append("email",$("email").value);
+  formData.append("phone",$("phone").value);
+  formData.append("bid",$("bid").value);
 
- await fetch(API_URL,{
-  method:"POST",
-  body:formData
- });
+  try{
+    const resp = await fetch(API_URL,{ method:"POST", body: formData });
+    const text = await resp.text();
 
- $("msg").textContent="Bod geplaatst!";
- $("bidForm").reset();
- refresh();
+    // Apps Script kan JSON of JSONP teruggeven; meestal JSON bij POST.
+    let data = null;
+    try { data = JSON.parse(text); } catch { data = { ok:true }; }
+
+    if(data && data.ok === false){
+      setMsg(data.error || "Bod niet geaccepteerd.", "err");
+      await refresh();
+      return;
+    }
+
+    setMsg("✅ Bod geplaatst!", "ok");
+
+    // Form reset maar selectie behouden:
+    const keepAuction = $("auctionSelect").value;
+    $("bidForm").reset();
+    $("auctionSelect").value = keepAuction;
+
+    await refresh();
+  }catch(err){
+    setMsg("Fout bij versturen: " + err.message, "err");
+  }
 }
 
 refresh();
@@ -274,3 +304,4 @@ setInterval(refresh,15000);
 </script>
 </body>
 </html>
+
